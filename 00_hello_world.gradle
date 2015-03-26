@@ -1,0 +1,35 @@
+println("Инициализация -->")
+
+// Подключаем java-plugin
+apply plugin: 'java'
+
+def name = 'World'; println "Hello $name!"
+
+def i
+for (i = 2; i < 10; ++i)
+    print("i = " + i + " ")
+
+i = "String"
+i = i.replaceAll("Str", "TTT")
+println(i)
+
+task configTask {
+    println("Конфигурирование")
+}
+
+// Конфигурирование задачи execTask
+task execTask {
+    dependsOn compileJava
+    println("execTask зависит от compileJava")
+}
+
+// Добавляем действия для этапа исполнения
+execTask << {
+    println("Исполнение execTask: первое действие")
+}
+
+execTask << {
+    println("Второе действие execTask")
+}
+
+println("<-- Окончание инициализации")

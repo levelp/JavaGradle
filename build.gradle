@@ -1,0 +1,202 @@
+// Подключаем java-plugin
+apply plugin: 'java'
+// + groovy plugin
+apply plugin: 'groovy'
+
+// Подключение другого Gradle файла
+apply from: 'common.gradle'
+
+sourceCompatibility = 1.8
+
+// Компиляция дополнительных модулей
+sourceSets {
+    myModule2
+}
+
+// Версия для артефакта (как в maven)
+version = '1.0'
+group = 'java' // Группа как в maven
+//name = 'JavaGradle' // Имя артифакта
+
+println("Project building...")
+
+// Можно объявлять переменные
+def i = 2, s = "String"
+
+// Массив
+def intArray = [1, 2, 3, 10]
+print(intArray[0])
+assert intArray.get(2) == 3
+assert intArray[2] == 3
+assert intArray instanceof java.util.List
+
+// Вы можете использовать в скриптах на Groovy циклы
+for (def j = 0; j < 6; ++j)
+    print("j = " + j + " ")
+
+// Создавать свои функции
+def myFunction(x) {
+    println("myFunction(" + x + ")")
+    return Math.pow(x, 2)
+}
+
+// Объявление своего класса
+class MyClass {
+
+    private
+    MyClass() {
+    }
+
+    static def add(a, b) {
+        return a + b
+    }
+}
+
+MyClass myClass = new MyClass();
+myClass.add(1, 2)
+
+// И, конечно же, вызывать их потом
+myFunction(42)
+
+// Подключаем центральный maven-репозиторий
+repositories {
+    mavenCentral()
+    jcenter() // http://jcenter.bintray.com
+}
+
+def postgeVersion = 'RELEASE'
+
+// Зависимости как в maven
+dependencies {
+    testCompile group: 'junit',
+            name: 'junit',
+            version: '4.12'
+    // Драйвер для postgreSQL
+    runtime 'postgresql:postgresql:9.0-801.jdbc4'
+    // Servlet API
+    runtime 'javax.servlet:javax.servlet-api:3.1.0'
+}
+
+dependencies {
+    compile 'commons-codec:commons-codec:1.6'
+    runtime 'commons-codec:commons-codec:1.6'
+}
+
+task compile {
+    dependsOn << compileJava
+}
+
+// Локальные зависимости
+dependencies {
+    compile files('libs/something_local.jar')
+    runtime files('libs/mnist-tools.jar',
+            'libs/gson-2.2.4.jar')
+    runtime fileTree(dir: 'libs',
+            include: '*.jar')
+}
+
+// Простейшая задача
+task helloX {
+    println 'Hello: configuration'
+}
+
+task hello << {
+    println 'Hello, world! :)'
+}
+
+// Последовательное добавление операций задачи по одной
+task hello2
+hello2 {
+    description 'Says hello to the world'
+}
+
+hello2 << {
+    print 'hello, '
+}
+
+hello2 << {
+    println 'world'
+
+}
+
+// Зависимости dependsOn
+task createSchema << {
+    println 'Create database schema'
+}
+
+// Объявляем зависимость 'loadTestData' от 'createSchema'
+// Остальные зависимости, определённые ранее, остаются неизменными
+task loadTestData {
+    dependsOn createSchema, hello
+}
+
+// Альтернативный способ указания той же зависимости
+task loadTestData2 {
+    dependsOn hello
+    dependsOn << createSchema
+}
+
+// Делаем то же самое, используя одиночные кавычки (которые обычно не нужны)
+task loadTestData3 {
+    dependsOn 'createSchema'
+}
+
+// Явный вызов метода объекта-задачи
+task loadTestData4
+loadTestData.dependsOn createSchema
+
+// Краткая нотация для определения зависимостей
+task loadTestData5(dependsOn: createSchema)
+
+// Типы задач
+// ----------
+
+mkdir("target")
+
+// Копирование файлов
+task copyFiles(type: Copy) {
+    from 'resources' // откуда
+    into 'target' // куда
+    include '**/*.xml', '**/*.txt', '**/*.properties' // что
+}
+
+copyFiles
+
+// Создание JAR-файла (упаковка результатов сборки)
+task customJar(type: Jar) {
+    manifest {
+        attributes firstKey: 'firstValue', secondKey: 'secondValue'
+    }
+    archiveName = 'hello.jar'
+    destinationDir = file("${buildDir}/jars")
+    from sourceSets.main.output
+}
+
+// Задача JavaExec
+// ---------------
+// JavaExec запускает Java-класс c методом main().
+// Запуск консольного Java-приложения может быть сопряжён с неудобствами.
+task encode(type: JavaExec, dependsOn: classes) {
+    main = 'org.gradle.example.commandline.MetaphoneEncoder'
+    args = "The rain in Spain falls mainly in the plain".split().toList()
+    classpath sourceSets.main.output.classesDir
+    classpath configurations.runtime
+}
+
+//Class.forName("")
+
+def getDir() {
+    return Runtime.getRuntime().exec("ls")
+}
+
+def getVersionName = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'describe', '--tags'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
+// Обновление из SVN
+//Runtime.getRuntime().exec("svn up")
