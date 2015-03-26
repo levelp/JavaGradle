@@ -1,0 +1,10 @@
+// Общий файл конфигурации 
+println("common.gradle configuration")
+
+task myTaskInCommonGradle {
+    println("myTaskInCommonGradle CONFIG")
+}
+
+myTaskInCommonGradle << {
+    println("myTaskInCommonGradle EXEC")
+}

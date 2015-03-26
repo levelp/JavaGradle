@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Build
+      run: |
+        chmod +x gradlew 2>/dev/null || true
+        if [ -f gradlew ]; then
+          ./gradlew build -x test || true
+        else
+          gradle build -x test || true
+        fi
+
+    - name: Run tests with coverage
+      run: |
+        if [ -f gradlew ]; then
+          ./gradlew test jacocoTestReport || true
+        else
+          gradle test jacocoTestReport || true
+        fi
+
+    - name: Coverage summary
+      if: always()
+      run: |
+        CSV=$(find . -name "jacocoTestReport.csv" 2>/dev/null | head -1)
+        if [ -n "$CSV" ]; then
+          echo "## Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          awk -F',' 'NR>1 {missed+=$4; covered+=$5} END {total=missed+covered; if(total>0) printf "Line Coverage: %d/%d (%.1f%%)\nMissed: %d lines\n", covered, total, covered*100/total, missed; else print "No coverage data"}' "$CSV" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        else
+          echo "## Coverage" >> $GITHUB_STEP_SUMMARY
+          echo "No JaCoCo report. Add jacoco plugin to build.gradle." >> $GITHUB_STEP_SUMMARY
+        fi

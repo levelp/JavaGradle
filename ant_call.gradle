@@ -1,0 +1,14 @@
+// Подключаем java-plugin
+apply plugin: 'java'
+
+def ant = new AntBuilder()   // create an antbuilder
+ant.exec(outputproperty: "cmdOut",
+        errorproperty: "cmdErr",
+        resultproperty: "cmdExit",
+        failonerror: "true",
+        executable: '/opt/myExecutable') {
+    arg(line: """*"first with space"* second""")
+}
+println "return code:  ${ant.project.properties.cmdExit}"
+println "stderr:         ${ant.project.properties.cmdErr}"
+println "stdout:        ${ant.project.properties.cmdOut}"
